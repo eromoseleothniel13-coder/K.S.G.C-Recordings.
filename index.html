@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#071b33">
+    <meta name="description" content="Watch and listen to messages, teachings and recordings from Knowledge of Salvation Glorious Church.">
+    <title>K.S.G.C Recordings</title>
+    <link rel="icon" type="image/png" href="/images/ksgc-images.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#mainContent">Skip to content</a>
+
+    <!-- HEADER -->
+    <header class="header">
+        <a class="public-brand" href="/" aria-label="K.S.G.C Recordings home">
+            <img src="/images/ksgc-images.png" alt="">
+            <span>K.S.G.C Recordings</span>
+        </a>
+
+        <nav aria-label="Main navigation">
+            <a href="/">Home</a>
+            <a href="#recordings">Recordings</a>
+            <a href="#about">About</a>
+        </nav>
+    </header>
+
+
+    <!-- HERO -->
+    <main id="mainContent" tabindex="-1">
+
+        <section class="hero">
+
+            <div class="hero-content">
+
+                <h1>Watch and Listen to Our Recordings</h1>
+
+                <p>
+                    Access our latest videos, audio recordings and teachings
+                    all in one place.
+                </p>
+
+                <button onclick="scrollToRecordings()">
+                    Browse Recordings
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- RECORDINGS -->
+        <section class="recordings" id="recordings">
+
+            <h2>Latest Recordings</h2>
+
+            <div class="public-recording-controls">
+                <div class="search-box public-search-box">
+                    <input
+                        type="search"
+                        id="searchPublicRecordings"
+                        aria-label="Search recordings by message name"
+                        placeholder="Search messages by name..."
+                        autocomplete="off"
+                    >
+                </div>
+
+                <label class="public-sort-control">
+                    <span>Sort by</span>
+                    <select id="sortPublicRecordings" aria-label="Sort recordings">
+                        <option value="recent">Recent</option>
+                        <option value="oldest">Long ago</option>
+                        <option value="name">Name A–Z</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- RECORDINGS FROM ADMIN PORTAL WILL APPEAR HERE -->
+            <div class="recording-grid" id="recordingGrid">
+
+                <div class="empty-recordings" id="loadingRecordings">
+                    <div class="empty-icon">⏳</div>
+
+                    <h3>Loading Recordings</h3>
+
+                    <p>
+                        Please wait while we load the latest K.S.G.C recordings.
+                    </p>
+                </div>
+
+            </div>
+            <p id="shareStatus" class="share-status" role="status" aria-live="polite" hidden></p>
+            <div class="recording-pagination" id="recordingPagination" hidden>
+                <button
+                    class="recording-page-button"
+                    id="previousRecordings"
+                    type="button"
+                    aria-label="Show previous recordings"
+                    disabled
+                >
+                    <span aria-hidden="true">&larr;</span>
+                </button>
+                <span class="recording-page-info" id="recordingPageInfo" aria-live="polite"></span>
+                <button
+                    class="recording-page-button"
+                    id="nextRecordings"
+                    type="button"
+                    aria-label="Show more recordings"
+                >
+                    <span aria-hidden="true">&rarr;</span>
+                </button>
+            </div>
+
+        </section>
+
+
+        <!-- ABOUT -->
+        <section id="about" class="about-section" aria-labelledby="aboutHeading">
+            <h2 id="aboutHeading">
+                About K.S.G.C Recordings
+            </h2>
+
+            <p>
+                Watch and listen to messages, teachings and other recordings
+                from Knowledge of Salvation Glorious Church.
+            </p>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer>
+
+        <div class="footer-content">
+
+            <p>
+                © 2026 K.S.G.C Recordings. All rights reserved.
+            </p>
+
+            <a href="/login.html" class="footer-admin-link">
+                🔐 Admin Portal
+            </a>
+
+        </div>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#071b33">
+    <title>Edit Recording - K.S.G.C Recordings</title>
+    <link rel="icon" type="image/png" href="/images/ksgc-images.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#mainContent">Skip to content</a>
+    <header class="admin-header">
+        <div class="admin-header-inner">
+            <a href="/admin.html" class="admin-brand">
+                <img
+                    src="/images/ksgc-images.png"
+                    alt="K.S.G.C Logo"
+                    class="admin-logo"
+                >
+                <div>
+                    <strong>K.S.G.C Recordings</strong>
+                    <small>Media Administration</small>
+                </div>
+            </a>
+
+            <nav class="admin-nav" aria-label="Admin navigation">
+                <a href="/admin.html">Dashboard</a>
+                <button id="logoutButton" class="logout-button" type="button">
+                    Logout
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="admin-dashboard recording-edit-page" id="mainContent" tabindex="-1">
+        <section class="dashboard-welcome">
+            <div>
+                <span class="dashboard-label">RECORDING LIBRARY</span>
+                <h1>Edit Recording</h1>
+                <p>Update the recording details, cover image, or media file.</p>
+            </div>
+            <div class="dashboard-symbol" aria-hidden="true">✎</div>
+        </section>
+
+        <section class="dashboard-card recording-edit-card">
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">EDIT DETAILS</span>
+                    <h2 id="recordingHeading">Loading recording...</h2>
+                    <p>Leave a file picker empty to keep its current file.</p>
+                </div>
+            </div>
+
+            <div id="currentRecordingFiles" class="edit-current-files" hidden>
+                <div class="edit-current-file">
+                    <h3>Current recording file</h3>
+                    <a id="currentRecordingLink" class="current-file-link"></a>
+                </div>
+                <div class="edit-current-file">
+                    <h3>Current thumbnail</h3>
+                    <div id="currentThumbnail" class="current-thumbnail"></div>
+                </div>
+            </div>
+
+            <form id="editRecordingForm" enctype="multipart/form-data">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="title">Recording Title</label>
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            placeholder="e.g. Sunday Worship Service"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Recording Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="5"
+                        placeholder="Write a short description about this recording..."
+                    ></textarea>
+                </div>
+
+                <div class="file-upload-grid">
+                    <div class="file-box edit-file-choice">
+                        <div class="file-icon" aria-hidden="true">🎥</div>
+                        <div>
+                            <strong>Recording file</strong>
+                            <p>Choose whether to keep or replace the current media.</p>
+                        </div>
+                        <fieldset class="replacement-options">
+                            <legend>Recording file option</legend>
+                            <label class="replacement-option">
+                                <input
+                                    type="radio"
+                                    name="recordingFileChoice"
+                                    value="keep"
+                                    checked
+                                >
+                                <span>Keep current file</span>
+                            </label>
+                            <label class="replacement-option">
+                                <input
+                                    type="radio"
+                                    name="recordingFileChoice"
+                                    value="replace"
+                                    data-replace-choice="recordingFile"
+                                >
+                                <span>Replace with a new file</span>
+                            </label>
+                        </fieldset>
+                        <div class="replacement-picker" data-replacement-picker="recordingFile" hidden>
+                            <label for="recordingFile">Choose a video or audio file</label>
+                            <input
+                                type="file"
+                                id="recordingFile"
+                                name="recordingFile"
+                                accept="video/*,audio/*"
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <div class="file-box edit-file-choice">
+                        <div class="file-icon" aria-hidden="true">🖼️</div>
+                        <div>
+                            <strong>Thumbnail</strong>
+                            <p>Choose whether to keep or replace the current cover image.</p>
+                        </div>
+                        <fieldset class="replacement-options">
+                            <legend>Thumbnail option</legend>
+                            <label class="replacement-option">
+                                <input
+                                    type="radio"
+                                    name="thumbnailChoice"
+                                    value="keep"
+                                    checked
+                                >
+                                <span>Keep current thumbnail</span>
+                            </label>
+                            <label class="replacement-option">
+                                <input
+                                    type="radio"
+                                    name="thumbnailChoice"
+                                    value="replace"
+                                    data-replace-choice="thumbnail"
+                                >
+                                <span>Replace with a new image</span>
+                            </label>
+                        </fieldset>
+                        <div class="replacement-picker" data-replacement-picker="thumbnail" hidden>
+                            <label for="thumbnail">Choose a thumbnail image</label>
+                            <input
+                                type="file"
+                                id="thumbnail"
+                                name="thumbnail"
+                                accept="image/*"
+                                disabled
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <p id="editMessage" class="recording-edit-message" role="status" aria-live="polite"></p>
+
+                <div class="recording-edit-actions">
+                    <a href="/admin.html" class="cancel-button">Cancel</a>
+                    <button id="saveRecordingButton" type="submit" class="primary-button">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer class="admin-footer">
+        <div>
+            <strong>K.S.G.C Recordings</strong>
+            <p>Church Media Management Portal</p>
+        </div>
+        <p>© 2026 K.S.G.C Recordings. All rights reserved.</p>
+    </footer>
+
+    <script>
+        "use strict";
+
+        const recordingId =
+            new URLSearchParams(window.location.search).get("id");
+        const editForm =
+            document.getElementById("editRecordingForm");
+        const editMessage =
+            document.getElementById("editMessage");
+        const saveButton =
+            document.getElementById("saveRecordingButton");
+        const maxUploadFileSize = 40 * 1024 * 1024 * 1024;
+        let recording;
+
+        function setMessage(message, isError = false) {
+            editMessage.textContent = message;
+            editMessage.classList.toggle("error", isError);
+        }
+
+        document.querySelectorAll(
+            'input[name="recordingFileChoice"], input[name="thumbnailChoice"]'
+        ).forEach(function(choice) {
+            choice.addEventListener("change", function() {
+                const fieldName = choice.name === "recordingFileChoice"
+                    ? "recordingFile"
+                    : "thumbnail";
+                const picker = document.querySelector(
+                    `[data-replacement-picker="${fieldName}"]`
+                );
+                const fileInput = document.getElementById(fieldName);
+                const isReplacing =
+                    editForm.elements[choice.name].value === "replace";
+
+                picker.hidden = !isReplacing;
+                fileInput.disabled = !isReplacing;
+                fileInput.required = isReplacing;
+
+                if (!isReplacing) {
+                    fileInput.value = "";
+                }
+
+            });
+        });
+
+        async function loadRecording() {
+            if (!recordingId) {
+                throw new Error("No recording was selected.");
+            }
+
+            const response = await fetch("/api/recordings", {
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not load the recording.");
+            }
+
+            const result = await response.json();
+            const recordings = Array.isArray(result)
+                ? result
+                : result.recordings;
+
+            if (!Array.isArray(recordings)) {
+                throw new Error("The server returned invalid recording data.");
+            }
+
+            recording = recordings.find(
+                item => String(item.id) === recordingId
+            );
+
+            if (!recording) {
+                throw new Error("Recording not found.");
+            }
+
+            document.getElementById("recordingHeading").textContent =
+                recording.title || "Untitled Recording";
+            document.getElementById("title").value =
+                recording.title || "";
+            document.getElementById("date").value =
+                recording.date || "";
+            document.getElementById("description").value =
+                recording.description || "";
+
+            const recordingLink =
+                document.getElementById("currentRecordingLink");
+            recordingLink.textContent =
+                recording.originalName || "View current recording";
+            recordingLink.href = recording.recordingUrl || "#";
+            recordingLink.target = "_blank";
+            recordingLink.rel = "noopener noreferrer";
+
+            const thumbnail = document.getElementById("currentThumbnail");
+            if (recording.thumbnailUrl) {
+                const image = document.createElement("img");
+                image.src = recording.thumbnailUrl;
+                image.alt = `Current thumbnail for ${recording.title || "recording"}`;
+                thumbnail.replaceChildren(image);
+            } else {
+                const emptyThumbnail = document.createElement("span");
+                emptyThumbnail.textContent = "No thumbnail uploaded.";
+                thumbnail.replaceChildren(emptyThumbnail);
+            }
+
+            document.getElementById("currentRecordingFiles").hidden = false;
+        }
+
+        editForm.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const replacementInputs = [
+                document.getElementById("recordingFile").files[0],
+                document.getElementById("thumbnail").files[0]
+            ];
+            const replacingRecording =
+                editForm.elements.recordingFileChoice.value === "replace";
+            const replacingThumbnail =
+                editForm.elements.thumbnailChoice.value === "replace";
+
+            if (
+                (replacingRecording && !replacementInputs[0]) ||
+                (replacingThumbnail && !replacementInputs[1])
+            ) {
+                setMessage(
+                    "Choose a file for each replacement, or select Keep current.",
+                    true
+                );
+                return;
+            }
+
+            const selectedFiles = replacementInputs.filter(Boolean);
+
+            if (selectedFiles.some(file => file.size > maxUploadFileSize)) {
+                setMessage(
+                    "Each replacement file must be 40 GB or smaller.",
+                    true
+                );
+                return;
+            }
+
+            saveButton.disabled = true;
+            setMessage(selectedFiles.length ? "Starting upload..." : "Saving changes...");
+
+            const request = new XMLHttpRequest();
+            request.open(
+                "PUT",
+                `/api/recordings/${encodeURIComponent(recordingId)}`
+            );
+            request.upload.addEventListener("progress", function(progressEvent) {
+                if (progressEvent.lengthComputable && selectedFiles.length) {
+                    const percent = Math.round(
+                        (progressEvent.loaded / progressEvent.total) * 100
+                    );
+                    setMessage(`Uploading replacement file... ${percent}%`);
+                }
+            });
+            request.addEventListener("load", function() {
+                let result = {};
+                try {
+                    result = JSON.parse(request.responseText);
+                } catch (error) {
+                    console.error("Invalid save response:", error);
+                }
+
+                if (request.status < 200 || request.status >= 300 || result.success === false) {
+                    const message = request.status === 408
+                        ? "The server timed out while receiving the file. Restart the server and try again."
+                        : result.message || `Save failed (HTTP ${request.status}).`;
+                    setMessage(
+                        message,
+                        true
+                    );
+                    saveButton.disabled = false;
+                    return;
+                }
+
+                window.location.href = "/admin.html";
+            });
+            request.addEventListener("error", function() {
+                setMessage(
+                    "The upload connection was interrupted. Check that the local server is still running and that your disk has enough free space. You can save the details without replacing the file, then try the file again.",
+                    true
+                );
+                saveButton.disabled = false;
+            });
+            request.addEventListener("abort", function() {
+                setMessage("The upload was cancelled before it finished.", true);
+                saveButton.disabled = false;
+            });
+            request.send(new FormData(editForm));
+        });
+
+        document.getElementById("logoutButton")
+            .addEventListener("click", async function() {
+                try {
+                    await fetch("/api/logout", { method: "POST" });
+                } catch (error) {
+                    console.error("Logout error:", error);
+                }
+                window.location.href = "/login.html";
+            });
+
+        loadRecording().catch(function(error) {
+            console.error("Load recording error:", error);
+            document.getElementById("recordingHeading").textContent =
+                "Unable to load recording";
+            setMessage(error.message || "Could not load the recording.", true);
+            editForm.hidden = true;
+        });
+    </script>
+</body>
+</html>
