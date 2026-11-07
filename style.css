@@ -3244,8 +3244,39 @@ main[id] {
 
 .hero {
     background:
-        radial-gradient(ellipse at 82% 18%, rgba(242, 201, 76, 0.12), transparent 34%),
+        radial-gradient(ellipse at 82% 18%, rgba(242, 201, 76, 0.16), transparent 38%),
+        radial-gradient(ellipse at 18% 82%, rgba(54, 133, 196, 0.22), transparent 42%),
         linear-gradient(135deg, #071b33 0%, #0c3054 58%, #123b63 100%);
+    background-size: 160% 160%;
+    animation: hero-background-drift 24s ease-in-out infinite alternate;
+}
+
+.hero::before {
+    animation: hero-orb-drift 18s ease-in-out infinite alternate;
+}
+
+.hero::after {
+    animation: hero-orb-drift 22s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes hero-background-drift {
+    from {
+        background-position: 0% 50%;
+    }
+
+    to {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes hero-orb-drift {
+    from {
+        transform: translate3d(0, 0, 0) scale(0.94);
+    }
+
+    to {
+        transform: translate3d(28px, 22px, 0) scale(1.06);
+    }
 }
 
 .hero h1 {
@@ -3399,6 +3430,12 @@ footer,
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;
+    }
+
+    .hero,
+    .hero::before,
+    .hero::after {
+        animation: none;
     }
 
     *,
