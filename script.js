@@ -5,6 +5,8 @@
 let loadedPublicRecordings = [];
 let publicRecordingPage = 0;
 let playerReturnFocus = null;
+let playerAudioContext = null;
+let playerAnimationFrame = 0;
 
 const PUBLIC_RECORDINGS_PER_PAGE = 4;
 
@@ -979,7 +981,8 @@ function requestRecordingUnlock(recording) {
             openPlayer(
                 `/api/recordings/${encodeURIComponent(recording.id)}/media`,
                 title,
-                getRecordingType(recording)
+                getRecordingType(recording),
+                recording.thumbnailUrl || ""
             );
 
         } catch (error) {
@@ -1006,7 +1009,8 @@ function requestRecordingUnlock(recording) {
 function openPlayer(
     file,
     title,
-    type
+    type,
+    thumbnailUrl = ""
 ) {
     playerReturnFocus = document.activeElement;
 
@@ -1017,6 +1021,13 @@ function openPlayer(
 
 
     if (existingPlayer) {
+        window.cancelAnimationFrame(playerAnimationFrame);
+        if (playerAudioContext) {
+            playerAudioContext.close().catch(error => {
+                console.error("Could not close the previous audio player context:", error);
+            });
+            playerAudioContext = null;
+        }
         existingPlayer.remove();
     }
 
@@ -1084,6 +1095,20 @@ function openPlayer(
                                     <span class="audio-bubble"></span>
                                     <span class="audio-bubble"></span>
                                 </div>
+                                <div class="audio-disc-turntable">
+                                    <div class="audio-disc">
+                                        <div class="audio-disc-label">
+                                            ${thumbnailUrl
+                                                ? `<img src="${escapeHtml(thumbnailUrl)}" alt="" class="audio-disc-thumbnail">`
+                                                : `<span class="audio-disc-placeholder">K.S.G.C</span>`
+                                            }
+                                        </div>
+                                        <span class="audio-disc-center" aria-hidden="true"></span>
+                                    </div>
+                                </div>
+                                <div class="audio-voice-visualizer" aria-hidden="true">
+                                    ${Array.from({ length: 32 }, () => '<span class="audio-voice-bar"></span>').join("")}
+                                </div>
                                 <audio
                                     controls
                                     autoplay
@@ -1138,6 +1163,11 @@ function openPlayer(
     document.body.appendChild(overlay);
     overlay.querySelector(".recording-player-close").focus();
 
+    const audio = overlay.querySelector(".recording-audio-player");
+    if (audio) {
+        initializeAudioVisualization(audio, overlay);
+    }
+
 
     overlay.addEventListener(
         "click",
@@ -1169,6 +1199,132 @@ function openPlayer(
 }
 
 
+function initializeAudioVisualization(audio, overlay) {
+    const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+    const bars =
+        Array.from(overlay.querySelectorAll(".audio-voice-bar"));
+    let analyser;
+    let frequencyData;
+    let timeDomainData;
+
+    function renderVoiceLevel() {
+        if (!analyser || audio.paused || audio.ended) {
+            return;
+        }
+
+        analyser.getByteFrequencyData(frequencyData);
+        analyser.getFloatTimeDomainData(timeDomainData);
+        const maxBin =
+            Math.max(2, Math.floor(frequencyData.length * 0.72));
+        const meanSquare = timeDomainData.reduce(
+            (total, sample) => total + sample * sample,
+            0
+        ) / timeDomainData.length;
+        const voiceLevel = Math.sqrt(meanSquare);
+        const isQuiet = audio.muted || audio.volume === 0 || voiceLevel < 0.012;
+
+        bars.forEach((bar, index) => {
+            const start =
+                Math.floor(Math.pow(index / bars.length, 2) * maxBin);
+            const end = Math.max(
+                start + 1,
+                Math.floor(Math.pow((index + 1) / bars.length, 2) * maxBin)
+            );
+            let total = 0;
+
+            for (let bin = start; bin < end; bin += 1) {
+                total += frequencyData[bin];
+            }
+
+            const average = total / (end - start);
+            const level = isQuiet
+                ? 0
+                : Math.max(0, Math.min(1, (average - 12) / 120)) *
+                  Math.min(1, (voiceLevel - 0.012) * 12);
+
+            bar.style.setProperty(
+                "--voice-level",
+                String(0.06 + level * (0.16 + ((index * 17) % 7) / 100) * 5)
+            );
+            bar.style.opacity = isQuiet
+                ? "0.35"
+                : String(0.4 + level * 0.6);
+        });
+
+        playerAnimationFrame =
+            window.requestAnimationFrame(renderVoiceLevel);
+    }
+
+    audio.addEventListener("play", async function() {
+        const disc = overlay.querySelector(".audio-disc");
+        const visualizer =
+            overlay.querySelector(".audio-voice-visualizer");
+
+        if (disc) {
+            disc.classList.add("is-spinning");
+        }
+        if (visualizer) {
+            visualizer.classList.add("is-active");
+        }
+
+        if (!AudioContextClass) {
+            console.error("Audio visualization is not supported by this browser.");
+            return;
+        }
+
+        try {
+            if (!playerAudioContext) {
+                playerAudioContext = new AudioContextClass();
+                analyser = playerAudioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.72;
+                frequencyData =
+                    new Uint8Array(analyser.frequencyBinCount);
+                timeDomainData =
+                    new Float32Array(analyser.fftSize);
+
+                const source =
+                    playerAudioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(playerAudioContext.destination);
+            } else if (!analyser) {
+                throw new Error("Audio visualizer could not be initialized.");
+            }
+
+            await playerAudioContext.resume();
+            window.cancelAnimationFrame(playerAnimationFrame);
+            renderVoiceLevel();
+        } catch (error) {
+            console.error("Could not start audio visualization:", error);
+        }
+    });
+
+    audio.addEventListener("pause", function() {
+        const disc = overlay.querySelector(".audio-disc");
+        const visualizer =
+            overlay.querySelector(".audio-voice-visualizer");
+
+        if (disc) {
+            disc.classList.remove("is-spinning");
+        }
+        if (visualizer) {
+            visualizer.classList.remove("is-active");
+        }
+
+        window.cancelAnimationFrame(playerAnimationFrame);
+        bars.forEach(bar => {
+            bar.style.setProperty("--voice-level", "0.06");
+            bar.style.opacity = "0.35";
+        });
+    });
+
+    audio.addEventListener("ended", function() {
+        window.cancelAnimationFrame(playerAnimationFrame);
+    });
+}
+
+
 /* =========================================================
    CLOSE PLAYER
    ========================================================= */
@@ -1182,6 +1338,14 @@ function closePlayer() {
 
 
     if (player) {
+
+        window.cancelAnimationFrame(playerAnimationFrame);
+        if (playerAudioContext) {
+            playerAudioContext.close().catch(error => {
+                console.error("Could not close the audio player context:", error);
+            });
+            playerAudioContext = null;
+        }
 
         player.remove();
 
