@@ -200,7 +200,10 @@ async function loadPublicRecordings() {
     try {
 
         const response =
-            await fetch("/api/recordings");
+            await fetch("/api/recordings", {
+                method: "GET",
+                cache: "no-store"
+            });
 
 
         if (!response.ok) {
