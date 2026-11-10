@@ -3355,6 +3355,24 @@ main[id] {
     animation: hero-orb-drift 22s ease-in-out infinite alternate-reverse;
 }
 
+.hero-live-background {
+    position: absolute;
+    z-index: 1;
+    inset: -35%;
+    pointer-events: none;
+    opacity: 0.72;
+    background:
+        radial-gradient(ellipse at 30% 42%, rgba(52, 147, 205, 0.36), transparent 30%),
+        radial-gradient(ellipse at 72% 58%, rgba(242, 201, 76, 0.18), transparent 27%),
+        radial-gradient(ellipse at 52% 22%, rgba(104, 173, 221, 0.2), transparent 32%);
+    filter: blur(28px);
+    animation: hero-aurora-drift 18s ease-in-out infinite alternate;
+}
+
+.hero-content {
+    z-index: 2;
+}
+
 @keyframes hero-background-drift {
     from {
         background-position: 0% 50%;
@@ -3362,6 +3380,16 @@ main[id] {
 
     to {
         background-position: 100% 50%;
+    }
+}
+
+@keyframes hero-aurora-drift {
+    from {
+        transform: translate3d(-4%, -2%, 0) rotate(-5deg) scale(0.94);
+    }
+
+    to {
+        transform: translate3d(4%, 2%, 0) rotate(5deg) scale(1.06);
     }
 }
 
@@ -3530,7 +3558,8 @@ footer,
 
     .hero,
     .hero::before,
-    .hero::after {
+    .hero::after,
+    .hero-live-background {
         animation: none;
     }
 
