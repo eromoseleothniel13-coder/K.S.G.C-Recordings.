@@ -342,6 +342,9 @@ function displayPublicRecordings(recordings) {
                     formatRecordingDate(recording.date)
                 );
 
+            const speakerName =
+                escapeHtml(recording.speakerName || "");
+
 
             const type =
                 getRecordingType(recording);
@@ -403,6 +406,11 @@ function displayPublicRecordings(recordings) {
                             }
                         </p>
 
+                        ${
+                            speakerName
+                                ? `<p class="recording-speaker">Speaker: ${speakerName}</p>`
+                                : ""
+                        }
 
                         ${
                             description

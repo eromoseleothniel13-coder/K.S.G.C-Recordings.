@@ -774,6 +774,7 @@ app.post(
             const {
                 title,
                 date,
+                speakerName,
                 description
             } = req.body;
 
@@ -835,6 +836,11 @@ app.post(
                 title: title.trim(),
 
                 date,
+
+                speakerName:
+                    speakerName
+                        ? speakerName.trim()
+                        : "",
 
                 description:
                     description
@@ -976,6 +982,7 @@ app.put(
             const {
                 title,
                 date,
+                speakerName,
                 description
             } = req.body;
 
@@ -1032,6 +1039,11 @@ app.put(
                 title: title.trim(),
 
                 date,
+
+                speakerName:
+                    speakerName
+                        ? speakerName.trim()
+                        : "",
 
                 description:
                     description

@@ -1382,6 +1382,12 @@ footer {
     margin-bottom: 8px;
 }
 
+.management-info .management-speaker,
+.recording-card .card-content .recording-speaker {
+    color: #123b63;
+    font-weight: 800;
+}
+
 .management-info small {
     color: #42566b;
     font-size: 12px;

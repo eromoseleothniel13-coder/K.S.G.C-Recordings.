@@ -150,6 +150,18 @@
                         >
                     </div>
 
+                    <div class="form-group">
+                        <label for="speakerName">Speaker Name</label>
+
+                        <input
+                            type="text"
+                            id="speakerName"
+                            name="speakerName"
+                            maxlength="120"
+                            placeholder="e.g. Pastor John Smith"
+                        >
+                    </div>
+
                 </div>
 
 
@@ -518,6 +530,11 @@
                     recording.originalName || "Recording file"
                 );
 
+            const speakerName =
+                recording.speakerName
+                    ? escapeHtml(recording.speakerName)
+                    : "";
+
             const date =
                 escapeHtml(formatDate(recording.date));
 
@@ -551,6 +568,8 @@
                         </span>
 
                         <h3>${title}</h3>
+
+                        ${speakerName ? `<p class="management-speaker">Speaker: ${speakerName}</p>` : ""}
 
                         <p>${description}</p>
 
@@ -662,10 +681,14 @@
             const filename =
                 (recording.originalName || "").toLowerCase();
 
+            const speakerName =
+                (recording.speakerName || "").toLowerCase();
+
             return (
                 title.includes(searchText) ||
                 description.includes(searchText) ||
-                filename.includes(searchText)
+                filename.includes(searchText) ||
+                speakerName.includes(searchText)
             );
         });
 
