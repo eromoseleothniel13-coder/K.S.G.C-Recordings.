@@ -104,6 +104,15 @@ Make <!DOCTYPE html>
                     ></textarea>
                 </div>
 
+                <fieldset class="noise-reduction-option edit-noise-reduction">
+                    <legend>Remove noise from this recording?</legend>
+                    <label>
+                        <input type="checkbox" id="removeNoise" name="removeNoise">
+                        Reduce background noise and replace the current media
+                    </label>
+                    <p>Leave unchecked to keep the current recording unchanged. If you choose a replacement file, noise reduction applies to it; otherwise it processes the current recording. Processing takes as long as the recording.</p>
+                </fieldset>
+
                 <div class="file-upload-grid">
                     <div class="file-box edit-file-choice">
                         <div class="file-icon" aria-hidden="true">🎥</div>
@@ -184,6 +193,14 @@ Make <!DOCTYPE html>
                     </div>
                 </div>
 
+                <div id="editProgress" class="upload-progress" hidden>
+                    <div class="upload-progress-label" aria-live="polite">
+                        <span id="editProgressStage">Preparing recording...</span>
+                        <span id="editProgressPercent">0%</span>
+                    </div>
+                    <progress id="editProgressBar" max="100" value="0" aria-label="Noise removal and upload progress"></progress>
+                </div>
+
                 <p id="editMessage" class="recording-edit-message" role="status" aria-live="polite"></p>
 
                 <div class="recording-edit-actions">
@@ -204,6 +221,7 @@ Make <!DOCTYPE html>
         <p>© 2026 K.S.G.C Recordings. All rights reserved.</p>
     </footer>
 
+    <script src="noise-reduction.js"></script>
     <script>
         "use strict";
 
@@ -215,12 +233,31 @@ Make <!DOCTYPE html>
             document.getElementById("editMessage");
         const saveButton =
             document.getElementById("saveRecordingButton");
+        const noiseRemoval =
+            document.getElementById("removeNoise");
+        const editProgress =
+            document.getElementById("editProgress");
+        const editProgressStage =
+            document.getElementById("editProgressStage");
+        const editProgressPercent =
+            document.getElementById("editProgressPercent");
+        const editProgressBar =
+            document.getElementById("editProgressBar");
         const maxUploadFileSize = 40 * 1024 * 1024 * 1024;
         let recording;
 
         function setMessage(message, isError = false) {
             editMessage.textContent = message;
             editMessage.classList.toggle("error", isError);
+        }
+
+        function updateEditProgress(stage, percent) {
+            const roundedPercent = Math.min(100, Math.max(0, Math.round(percent)));
+
+            editProgress.hidden = false;
+            editProgressStage.textContent = stage;
+            editProgressPercent.textContent = roundedPercent + "%";
+            editProgressBar.value = roundedPercent;
         }
 
         document.querySelectorAll(
@@ -323,6 +360,7 @@ Make <!DOCTYPE html>
                 editForm.elements.recordingFileChoice.value === "replace";
             const replacingThumbnail =
                 editForm.elements.thumbnailChoice.value === "replace";
+            const removeNoise = noiseRemoval.checked;
 
             if (
                 (replacingRecording && !replacementInputs[0]) ||
@@ -335,7 +373,7 @@ Make <!DOCTYPE html>
                 return;
             }
 
-            const selectedFiles = replacementInputs.filter(Boolean);
+            let selectedFiles = replacementInputs.filter(Boolean);
 
             if (selectedFiles.some(file => file.size > maxUploadFileSize)) {
                 setMessage(
@@ -346,55 +384,127 @@ Make <!DOCTYPE html>
             }
 
             saveButton.disabled = true;
-            setMessage(selectedFiles.length ? "Starting upload..." : "Saving changes...");
-
-            const request = new XMLHttpRequest();
-            request.open(
-                "PUT",
-                `/api/recordings/${encodeURIComponent(recordingId)}`
+            editProgress.hidden = true;
+            setMessage(
+                removeNoise
+                    ? "Preparing noise reduction..."
+                    : selectedFiles.length
+                        ? "Starting upload..."
+                        : "Saving changes..."
             );
-            request.upload.addEventListener("progress", function(progressEvent) {
-                if (progressEvent.lengthComputable && selectedFiles.length) {
-                    const percent = Math.round(
-                        (progressEvent.loaded / progressEvent.total) * 100
-                    );
-                    setMessage(`Uploading replacement file... ${percent}%`);
-                }
-            });
-            request.addEventListener("load", function() {
-                let result = {};
-                try {
-                    result = JSON.parse(request.responseText);
-                } catch (error) {
-                    console.error("Invalid save response:", error);
+
+            try {
+                const formData = new FormData(editForm);
+
+                if (removeNoise) {
+                    let sourceFile = replacementInputs[0];
+
+                    if (!sourceFile) {
+                        updateEditProgress("Loading current recording...", 0);
+                        const mediaResponse = await fetch(
+                            `/api/recordings/${encodeURIComponent(recordingId)}/media`,
+                            { cache: "no-store" }
+                        );
+
+                        if (!mediaResponse.ok) {
+                            throw new Error(
+                                mediaResponse.status === 403
+                                    ? "Your admin session cannot access this recording. Sign in again and retry."
+                                    : "Could not load the current recording for noise reduction."
+                            );
+                        }
+
+                        const mediaBlob = await mediaResponse.blob();
+                        const mediaType =
+                            recording.type || mediaResponse.headers.get("Content-Type") || "";
+                        sourceFile = new File(
+                            [mediaBlob],
+                            recording.originalName || "recording",
+                            { type: mediaType, lastModified: Date.now() }
+                        );
+                    }
+
+                    if (sourceFile.size > maxUploadFileSize) {
+                        throw new Error("The recording must be 40 GB or smaller to process.");
+                    }
+
+                    const processedFile =
+                        await window.reduceRecordingNoise(
+                            sourceFile,
+                            updateEditProgress
+                        );
+
+                    if (processedFile.size > maxUploadFileSize) {
+                        throw new Error("The noise-reduced recording is larger than the 40 GB upload limit.");
+                    }
+
+                    formData.set("recordingFile", processedFile, processedFile.name);
+                    selectedFiles = [
+                        processedFile,
+                        ...replacementInputs.slice(1).filter(Boolean)
+                    ];
                 }
 
-                if (request.status < 200 || request.status >= 300 || result.success === false) {
-                    const message = request.status === 408
-                        ? "The server timed out while receiving the file. Restart the server and try again."
-                        : result.message || `Save failed (HTTP ${request.status}).`;
+                const isUploadingFiles = selectedFiles.length > 0;
+                setMessage(
+                    isUploadingFiles
+                        ? "Uploading replacement file..."
+                        : "Saving changes..."
+                );
+
+                const request = new XMLHttpRequest();
+                request.open(
+                    "PUT",
+                    `/api/recordings/${encodeURIComponent(recordingId)}`
+                );
+                request.upload.addEventListener("progress", function(progressEvent) {
+                    if (progressEvent.lengthComputable && isUploadingFiles) {
+                        const percent = Math.round(
+                            (progressEvent.loaded / progressEvent.total) * 100
+                        );
+                        updateEditProgress("Uploading replacement file...", percent);
+                        setMessage(`Uploading replacement file... ${percent}%`);
+                    }
+                });
+                request.addEventListener("load", function() {
+                    let result = {};
+                    try {
+                        result = JSON.parse(request.responseText);
+                    } catch (error) {
+                        console.error("Invalid save response:", error);
+                    }
+
+                    if (request.status < 200 || request.status >= 300 || result.success === false) {
+                        const message = request.status === 408
+                            ? "The server timed out while receiving the file. Restart the server and try again."
+                            : result.message || `Save failed (HTTP ${request.status}).`;
+                        setMessage(message, true);
+                        saveButton.disabled = false;
+                        return;
+                    }
+
+                    window.location.href = "/admin.html";
+                });
+                request.addEventListener("error", function() {
                     setMessage(
-                        message,
+                        "The upload connection was interrupted. Check that the local server is still running and that your disk has enough free space. You can save the details without replacing the file, then try the file again.",
                         true
                     );
                     saveButton.disabled = false;
-                    return;
-                }
-
-                window.location.href = "/admin.html";
-            });
-            request.addEventListener("error", function() {
+                });
+                request.addEventListener("abort", function() {
+                    setMessage("The upload was cancelled before it finished.", true);
+                    saveButton.disabled = false;
+                });
+                request.send(formData);
+            } catch (error) {
+                console.error("Recording update error:", error);
                 setMessage(
-                    "The upload connection was interrupted. Check that the local server is still running and that your disk has enough free space. You can save the details without replacing the file, then try the file again.",
+                    error.message || "Could not process the recording.",
                     true
                 );
                 saveButton.disabled = false;
-            });
-            request.addEventListener("abort", function() {
-                setMessage("The upload was cancelled before it finished.", true);
-                saveButton.disabled = false;
-            });
-            request.send(new FormData(editForm));
+            }
         });
 
         document.getElementById("logoutButton")
