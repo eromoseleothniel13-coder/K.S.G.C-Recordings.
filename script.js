@@ -65,6 +65,121 @@ function scrollToRecordings() {
 
 }
 
+function initializeHeroVideoBackground() {
+    const canvas = document.querySelector(".hero-video-background");
+
+    if (!canvas) {
+        return;
+    }
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+        console.error("Could not initialize the home page background animation.");
+        return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const particles = Array.from({ length: 42 }, (_, index) => ({
+        x: ((index * 67.7) % 100) / 100,
+        y: ((index * 39.1) % 100) / 100,
+        radius: 0.6 + ((index * 13) % 10) / 10,
+        speed: 0.012 + ((index * 7) % 10) / 1000,
+        phase: index * 1.7
+    }));
+    let width = 0;
+    let height = 0;
+    let animationFrame = 0;
+
+    function resizeCanvas() {
+        const bounds = canvas.getBoundingClientRect();
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+        width = bounds.width;
+        height = bounds.height;
+        canvas.width = Math.round(width * pixelRatio);
+        canvas.height = Math.round(height * pixelRatio);
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        drawBackground(0);
+    }
+
+    function drawBackground(timestamp) {
+        const time = reducedMotion.matches ? 0 : timestamp / 1000;
+        const gradient = context.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, "#06172a");
+        gradient.addColorStop(0.52, "#0b2d4d");
+        gradient.addColorStop(1, "#071b33");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, width, height);
+
+        const glowPoints = [
+            { x: 0.2 + Math.sin(time * 0.22) * 0.12, y: 0.18, color: "77, 169, 224" },
+            { x: 0.78 + Math.sin(time * 0.17 + 1.8) * 0.12, y: 0.16, color: "242, 201, 76" },
+            { x: 0.5 + Math.cos(time * 0.14) * 0.16, y: 0.08, color: "121, 183, 226" }
+        ];
+
+        glowPoints.forEach(point => {
+            const x = point.x * width;
+            const y = point.y * height;
+            const glow = context.createRadialGradient(x, y, 0, x, y, width * 0.42);
+            glow.addColorStop(0, `rgba(${point.color}, 0.2)`);
+            glow.addColorStop(1, `rgba(${point.color}, 0)`);
+            context.fillStyle = glow;
+            context.fillRect(0, 0, width, height);
+        });
+
+        for (let index = 0; index < 3; index += 1) {
+            const phase = time * 0.18 + index * 2.2;
+            const sourceX = width * (0.18 + index * 0.32 + Math.sin(phase) * 0.1);
+            const targetX = sourceX + Math.sin(phase + 0.8) * width * 0.22;
+            const beam = context.createLinearGradient(sourceX, 0, targetX, height);
+            beam.addColorStop(0, index === 1
+                ? "rgba(242, 201, 76, 0.16)"
+                : "rgba(133, 196, 238, 0.15)");
+            beam.addColorStop(1, "rgba(133, 196, 238, 0)");
+            context.beginPath();
+            context.moveTo(sourceX - width * 0.035, 0);
+            context.lineTo(sourceX + width * 0.035, 0);
+            context.lineTo(targetX + width * 0.2, height);
+            context.lineTo(targetX - width * 0.2, height);
+            context.closePath();
+            context.fillStyle = beam;
+            context.fill();
+        }
+
+        particles.forEach(particle => {
+            const drift = reducedMotion.matches ? 0 : time * particle.speed;
+            const x = ((particle.x + drift) % 1) * width;
+            const y = (particle.y + Math.sin(time * 0.35 + particle.phase) * 0.035) * height;
+            const opacity = 0.18 + (Math.sin(time * 0.8 + particle.phase) + 1) * 0.16;
+            context.beginPath();
+            context.arc(x, y, particle.radius, 0, Math.PI * 2);
+            context.fillStyle = `rgba(255, 239, 190, ${opacity})`;
+            context.fill();
+        });
+    }
+
+    function animate(timestamp) {
+        drawBackground(timestamp);
+        animationFrame = window.requestAnimationFrame(animate);
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    reducedMotion.addEventListener("change", resizeCanvas);
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+            window.cancelAnimationFrame(animationFrame);
+        } else if (!reducedMotion.matches) {
+            animationFrame = window.requestAnimationFrame(animate);
+        }
+    });
+
+    if (!reducedMotion.matches) {
+        animationFrame = window.requestAnimationFrame(animate);
+    }
+}
+
 
 /* =========================================================
    LOAD RECORDINGS
@@ -954,22 +1069,32 @@ function openPlayer(
 
                         ? `
 
-                            <audio
-                                controls
-                                autoplay
-                                controlsList="nodownload noplaybackrate"
-                                oncontextmenu="return false"
-                                class="recording-audio-player"
-                            >
-
-                                <source
-                                    src="${file}"
+                            <div class="recording-audio-stage">
+                                <div class="audio-bubble-field" aria-hidden="true">
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                    <span class="audio-bubble"></span>
+                                </div>
+                                <audio
+                                    controls
+                                    autoplay
+                                    controlsList="nodownload noplaybackrate"
+                                    oncontextmenu="return false"
+                                    class="recording-audio-player"
                                 >
-
-                                Your browser cannot
-                                play this audio file.
-
-                            </audio>
+                                    <source src="${file}">
+                                    Your browser cannot play this audio file.
+                                </audio>
+                            </div>
 
                           `
 
@@ -1162,6 +1287,7 @@ document.addEventListener(
     "DOMContentLoaded",
     function() {
 
+        initializeHeroVideoBackground();
         initializeOfflineOverlay();
         initializeScrollReveal();
         initializePublicRecordingSearch();
