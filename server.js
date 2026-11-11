@@ -18,11 +18,34 @@ const app = express();
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 const PORT = Number(process.env.PORT) || 3000;
-const storageRoot = process.env.PERSISTENT_STORAGE_DIR
-    ? path.resolve(process.env.PERSISTENT_STORAGE_DIR)
-    : process.env.RENDER === "true"
-        ? "/var/data"
-        : __dirname;
+
+function getStorageRoot() {
+    if (process.env.PERSISTENT_STORAGE_DIR) {
+        return path.resolve(process.env.PERSISTENT_STORAGE_DIR);
+    }
+
+    if (process.env.RENDER === "true") {
+        try {
+            const persistentDisk = fs.statSync("/var/data");
+            const parentDirectory = fs.statSync("/var");
+
+            if (
+                persistentDisk.isDirectory() &&
+                persistentDisk.dev !== parentDirectory.dev
+            ) {
+                return "/var/data";
+            }
+        } catch (error) {
+            if (error.code !== "ENOENT") {
+                throw error;
+            }
+        }
+    }
+
+    return __dirname;
+}
+
+const storageRoot = getStorageRoot();
 
 
 /* =========================================================
@@ -66,6 +89,58 @@ fs.mkdirSync(recordingsFolder, { recursive: true });
 fs.mkdirSync(thumbnailsFolder, { recursive: true });
 fs.mkdirSync(dataFolder, { recursive: true });
 fs.mkdirSync(sessionsFolder, { recursive: true });
+
+if (
+    storageRoot !== __dirname &&
+    !fs.existsSync(recordingsFile)
+) {
+    const legacyRecordingsFile =
+        path.join(__dirname, "data", "recordings.json");
+
+    if (fs.existsSync(legacyRecordingsFile)) {
+        const legacyRecordings = JSON.parse(
+            fs.readFileSync(legacyRecordingsFile, "utf8")
+        );
+
+        if (!Array.isArray(legacyRecordings)) {
+            throw new Error("The existing recordings catalog must be an array.");
+        }
+
+        legacyRecordings.forEach((recording) => {
+            [
+                [
+                    "recordingUrl",
+                    path.join(__dirname, "uploads", "recordings"),
+                    recordingsFolder
+                ],
+                [
+                    "thumbnailUrl",
+                    path.join(__dirname, "uploads", "thumbnails"),
+                    thumbnailsFolder
+                ]
+            ].forEach(([urlKey, sourceFolder, targetFolder]) => {
+                const filename = path.basename(recording?.[urlKey] || "");
+
+                if (!filename || filename === ".") {
+                    return;
+                }
+
+                const sourceFile = path.join(sourceFolder, filename);
+                const targetFile = path.join(targetFolder, filename);
+
+                if (
+                    fs.existsSync(sourceFile) &&
+                    !fs.existsSync(targetFile)
+                ) {
+                    fs.copyFileSync(sourceFile, targetFile);
+                }
+            });
+        });
+
+        fs.copyFileSync(legacyRecordingsFile, recordingsFile);
+        console.log("Migrated the existing recordings catalog to persistent storage.");
+    }
+}
 
 if (!fs.existsSync(recordingsFile)) {
     fs.writeFileSync(recordingsFile, "[]", "utf8");
