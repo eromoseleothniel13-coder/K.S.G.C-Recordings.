@@ -6,3 +6,4 @@ uploads/thumbnails/*
 !uploads/thumbnails/**
 /data/admin-login-attempts.json
 /data/recordings.json
+/data/sessions/

@@ -1,5 +1,6 @@
 const express = require("express");
 const session = require("express-session");
+const FileStore = require("session-file-store")(session);
 const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
@@ -17,18 +18,22 @@ const app = express();
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 const PORT = Number(process.env.PORT) || 3000;
+const storageRoot = process.env.PERSISTENT_STORAGE_DIR
+    ? path.resolve(process.env.PERSISTENT_STORAGE_DIR)
+    : __dirname;
 
 
 /* =========================================================
    FOLDERS
    ========================================================= */
 
-const uploadsFolder = path.join(__dirname, "uploads");
+const uploadsFolder = path.join(storageRoot, "uploads");
 const recordingsFolder = path.join(uploadsFolder, "recordings");
 const thumbnailsFolder = path.join(uploadsFolder, "thumbnails");
-const dataFolder = path.join(__dirname, "data");
+const dataFolder = path.join(storageRoot, "data");
 const recordingsFile = path.join(dataFolder, "recordings.json");
 const adminLoginAttemptsFile = path.join(dataFolder, "admin-login-attempts.json");
+const sessionsFolder = path.join(dataFolder, "sessions");
 const MAX_UPLOAD_FILE_SIZE_BYTES = 40 * 1024 * 1024 * 1024;
 const MAX_ADMIN_LOGIN_ATTEMPTS = 5;
 const UPLOAD_REQUEST_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -36,6 +41,7 @@ const UPLOAD_REQUEST_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 fs.mkdirSync(recordingsFolder, { recursive: true });
 fs.mkdirSync(thumbnailsFolder, { recursive: true });
 fs.mkdirSync(dataFolder, { recursive: true });
+fs.mkdirSync(sessionsFolder, { recursive: true });
 
 if (!fs.existsSync(recordingsFile)) {
     fs.writeFileSync(recordingsFile, "[]", "utf8");
@@ -60,6 +66,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
+        store: new FileStore({
+            path: sessionsFolder,
+            reapInterval: 3600
+        }),
 
         resave: false,
         saveUninitialized: false,
