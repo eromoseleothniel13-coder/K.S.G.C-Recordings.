@@ -577,6 +577,14 @@ app.get("/edit-recording.html", requireAdminPage);
    GET RECORDINGS
    ========================================================= */
 
+app.get("/api/health", (req, res) => {
+
+    res.set("Cache-Control", "no-store");
+    res.json({ status: "ok" });
+
+});
+
+
 app.get("/api/recordings", (req, res) => {
 
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");

@@ -1592,7 +1592,9 @@ function initializeOfflineOverlay() {
 
     const overlay = document.createElement("div");
     overlay.className = "offline-overlay";
-    overlay.hidden = navigator.onLine;
+    let serverReachable = navigator.onLine;
+    let checkingConnection = false;
+    overlay.hidden = serverReachable;
     overlay.setAttribute("role", "status");
     overlay.setAttribute("aria-live", "polite");
     overlay.innerHTML = `
@@ -1613,12 +1615,56 @@ function initializeOfflineOverlay() {
 
     document.body.appendChild(overlay);
 
+    function updateOverlay() {
+        overlay.hidden = navigator.onLine && serverReachable;
+    }
+
+    async function checkConnection() {
+        if (!navigator.onLine || checkingConnection) {
+            serverReachable = false;
+            updateOverlay();
+            return;
+        }
+
+        checkingConnection = true;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(function() {
+            controller.abort();
+        }, 8000);
+
+        try {
+            const response = await fetch("/api/health", {
+                method: "GET",
+                cache: "no-store",
+                signal: controller.signal
+            });
+            const data = response.ok ? await response.json() : null;
+            serverReachable = Boolean(data && data.status === "ok");
+        } catch (error) {
+            serverReachable = false;
+        } finally {
+            window.clearTimeout(timeout);
+            checkingConnection = false;
+            updateOverlay();
+        }
+    }
+
     window.addEventListener("offline", function() {
-        overlay.hidden = false;
+        serverReachable = false;
+        updateOverlay();
     });
 
     window.addEventListener("online", function() {
-        overlay.hidden = true;
+        checkConnection();
     });
+
+    document.addEventListener("visibilitychange", function() {
+        if (!document.hidden) {
+            checkConnection();
+        }
+    });
+
+    checkConnection();
+    window.setInterval(checkConnection, 15000);
 
 }
