@@ -38,6 +38,28 @@ const MAX_UPLOAD_FILE_SIZE_BYTES = 40 * 1024 * 1024 * 1024;
 const MAX_ADMIN_LOGIN_ATTEMPTS = 5;
 const UPLOAD_REQUEST_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
+class PersistentFileStore extends FileStore {
+
+    constructor(options) {
+        super({
+            ...options,
+            retries: 0
+        });
+    }
+
+    get(sessionId, callback) {
+        super.get(sessionId, (error, storedSession) => {
+            if (error && error.code === "ENOENT") {
+                callback(null, null);
+                return;
+            }
+
+            callback(error, storedSession);
+        });
+    }
+
+}
+
 fs.mkdirSync(recordingsFolder, { recursive: true });
 fs.mkdirSync(thumbnailsFolder, { recursive: true });
 fs.mkdirSync(dataFolder, { recursive: true });
@@ -66,7 +88,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
-        store: new FileStore({
+        store: new PersistentFileStore({
             path: sessionsFolder,
             reapInterval: 3600
         }),
