@@ -20,7 +20,9 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 const PORT = Number(process.env.PORT) || 3000;
 const storageRoot = process.env.PERSISTENT_STORAGE_DIR
     ? path.resolve(process.env.PERSISTENT_STORAGE_DIR)
-    : __dirname;
+    : process.env.RENDER === "true"
+        ? "/var/data"
+        : __dirname;
 
 
 /* =========================================================
